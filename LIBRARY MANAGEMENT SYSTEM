@@ -1,0 +1,250 @@
+#include <iostream>
+#include <fstream>
+#include <cstring>
+using namespace std;
+
+// ---------- LOGIN ----------
+bool login() {
+    string username, password;
+
+    cout << "===== LOGIN =====\n";
+    cout << "Username: ";
+    cin >> username;
+    cout << "Password: ";
+    cin >> password;
+
+    if (username == "admin" && password == "1234") {
+        cout << "Login successful!\n";
+        return true;
+    } else {
+        cout << "Invalid login!\n";
+        return false;
+    }
+}
+
+// ---------- BOOK CLASS ----------
+class Book {
+private:
+    int id;
+    char title[50];
+    char author[50];
+    bool issued;
+    int memberID;
+    int dueDays;
+
+public:
+    void addBook() {
+        cout << "Enter Book ID: ";
+        cin >> id;
+        cin.ignore();
+
+        cout << "Enter Title: ";
+        cin.getline(title, 50);
+
+        cout << "Enter Author: ";
+        cin.getline(author, 50);
+
+        issued = false;
+        memberID = -1;
+        dueDays = 0;
+    }
+
+    void display() {
+        cout << "\nID: " << id
+             << "\nTitle: " << title
+             << "\nAuthor: " << author
+             << "\nStatus: " << (issued ? "Issued" : "Available");
+
+        if (issued) {
+            cout << "\nIssued to Member ID: " << memberID;
+            cout << "\nDue Days Left: " << dueDays;
+        }
+        cout << "\n----------------------\n";
+    }
+
+    int getID() { return id; }
+    char* getTitle() { return title; }
+    char* getAuthor() { return author; }
+    bool isIssued() { return issued; }
+
+    void issue(int mID) {
+        if (!issued) {
+            issued = true;
+            memberID = mID;
+            dueDays = 7; // 7 days limit
+            cout << "Book issued successfully!\n";
+        } else {
+            cout << "Already issued!\n";
+        }
+    }
+
+    void returnBook() {
+        if (issued) {
+            if (dueDays < 0) {
+                cout << "Fine: ₹" << (-dueDays * 5) << endl;
+            }
+            issued = false;
+            memberID = -1;
+            dueDays = 0;
+            cout << "Book returned!\n";
+        } else {
+            cout << "Book was not issued!\n";
+        }
+    }
+
+    void reduceDays() {
+        if (issued)
+            dueDays--;
+    }
+};
+
+// ---------- MEMBER CLASS ----------
+class Member {
+private:
+    int memberID;
+    char name[50];
+
+public:
+    void addMember() {
+        cout << "Enter Member ID: ";
+        cin >> memberID;
+        cin.ignore();
+
+        cout << "Enter Name: ";
+        cin.getline(name, 50);
+    }
+
+    void display() {
+        cout << "\nMember ID: " << memberID;
+        cout << "\nName: " << name << endl;
+    }
+
+    int getID() { return memberID; }
+};
+
+// ---------- FILE FUNCTIONS ----------
+void addBookFile() {
+    Book b;
+    ofstream file("books.dat", ios::binary | ios::app);
+    b.addBook();
+    file.write((char*)&b, sizeof(b));
+    file.close();
+}
+
+void addMemberFile() {
+    Member m;
+    ofstream file("members.dat", ios::binary | ios::app);
+    m.addMember();
+    file.write((char*)&m, sizeof(m));
+    file.close();
+}
+
+void displayBooks() {
+    Book b;
+    ifstream file("books.dat", ios::binary);
+    while (file.read((char*)&b, sizeof(b))) {
+        b.display();
+    }
+    file.close();
+}
+
+// ---------- SEARCH ----------
+void searchTitle() {
+    Book b;
+    char key[50];
+    bool found = false;
+
+    cout << "Enter title: ";
+    cin.ignore();
+    cin.getline(key, 50);
+
+    ifstream file("books.dat", ios::binary);
+
+    while (file.read((char*)&b, sizeof(b))) {
+        if (strstr(b.getTitle(), key)) {
+            b.display();
+            found = true;
+        }
+    }
+
+    if (!found) cout << "Not found!\n";
+    file.close();
+}
+
+// ---------- ISSUE ----------
+void issueBook() {
+    int id, mid;
+    cout << "Enter Book ID: ";
+    cin >> id;
+    cout << "Enter Member ID: ";
+    cin >> mid;
+
+    Book b;
+    fstream file("books.dat", ios::binary | ios::in | ios::out);
+
+    while (file.read((char*)&b, sizeof(b))) {
+        if (b.getID() == id) {
+            b.issue(mid);
+
+            int pos = -1 * sizeof(b);
+            file.seekp(pos, ios::cur);
+            file.write((char*)&b, sizeof(b));
+            break;
+        }
+    }
+    file.close();
+}
+
+// ---------- RETURN ----------
+void returnBookFunc() {
+    int id;
+    cout << "Enter Book ID: ";
+    cin >> id;
+
+    Book b;
+    fstream file("books.dat", ios::binary | ios::in | ios::out);
+
+    while (file.read((char*)&b, sizeof(b))) {
+        if (b.getID() == id) {
+            b.returnBook();
+
+            int pos = -1 * sizeof(b);
+            file.seekp(pos, ios::cur);
+            file.write((char*)&b, sizeof(b));
+            break;
+        }
+    }
+    file.close();
+}
+
+// ---------- MAIN ----------
+int main() {
+    if (!login()) return 0;
+
+    int choice;
+
+    do {
+        cout << "\n===== LIBRARY SYSTEM =====";
+        cout << "\n1. Add Book";
+        cout << "\n2. Add Member";
+        cout << "\n3. Display Books";
+        cout << "\n4. Search by Title";
+        cout << "\n5. Issue Book";
+        cout << "\n6. Return Book";
+        cout << "\n7. Exit";
+        cout << "\nChoice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: addBookFile(); break;
+            case 2: addMemberFile(); break;
+            case 3: displayBooks(); break;
+            case 4: searchTitle(); break;
+            case 5: issueBook(); break;
+            case 6: returnBookFunc(); break;
+        }
+
+    } while (choice != 7);
+
+    return 0;
+}
