@@ -1,0 +1,207 @@
+#include <iostream>
+#include <fstream>
+#include <cstring>
+using namespace std;
+
+class Account {
+private:
+    int accNo;
+    char name[50];
+    float balance;
+
+public:
+    void input() {
+        cout << "Enter Account Number: ";
+        cin >> accNo;
+        cin.ignore();
+
+        cout << "Enter Name: ";
+        cin.getline(name, 50);
+
+        cout << "Enter Initial Balance: ";
+        cin >> balance;
+    }
+
+    void display() {
+        cout << "\n---------------------------";
+        cout << "\nAccount No : " << accNo;
+        cout << "\nName       : " << name;
+        cout << "\nBalance    : " << balance;
+        cout << "\n---------------------------\n";
+    }
+
+    int getAccNo() {
+        return accNo;
+    }
+
+    float getBalance() {
+        return balance;
+    }
+
+    void depositAmount(float amt) {
+        if (amt > 0) {
+            balance += amt;
+            cout << "Deposit successful!\n";
+        } else {
+            cout << "Invalid amount!\n";
+        }
+    }
+
+    void withdrawAmount(float amt) {
+        if (amt <= 0) {
+            cout << "Invalid amount!\n";
+        } else if (amt > balance) {
+            cout << "Insufficient balance!\n";
+        } else {
+            balance -= amt;
+            cout << "Withdrawal successful!\n";
+        }
+    }
+};
+
+// Create Account
+void createAccount() {
+    Account acc;
+    ofstream file("bank.dat", ios::binary | ios::app);
+
+    acc.input();
+    file.write((char*)&acc, sizeof(acc));
+
+    file.close();
+    cout << "Account created successfully!\n";
+}
+
+// Display All Accounts
+void displayAll() {
+    Account acc;
+    ifstream file("bank.dat", ios::binary);
+
+    if (!file) {
+        cout << "No records found!\n";
+        return;
+    }
+
+    while (file.read((char*)&acc, sizeof(acc))) {
+        acc.display();
+    }
+
+    file.close();
+}
+
+// Search Account
+bool searchAccount(int accNo, Account &acc) {
+    ifstream file("bank.dat", ios::binary);
+
+    while (file.read((char*)&acc, sizeof(acc))) {
+        if (acc.getAccNo() == accNo) {
+            file.close();
+            return true;
+        }
+    }
+
+    file.close();
+    return false;
+}
+
+// Update Account (Deposit / Withdraw)
+void updateAccount(int accNo, int choice) {
+    Account acc;
+    fstream file("bank.dat", ios::binary | ios::in | ios::out);
+
+    bool found = false;
+
+    while (file.read((char*)&acc, sizeof(acc))) {
+        if (acc.getAccNo() == accNo) {
+
+            acc.display();
+
+            float amt;
+            cout << "Enter amount: ";
+            cin >> amt;
+
+            if (choice == 1)
+                acc.depositAmount(amt);
+            else
+                acc.withdrawAmount(amt);
+
+            int pos = -1 * sizeof(acc);
+            file.seekp(pos, ios::cur);
+            file.write((char*)&acc, sizeof(acc));
+
+            cout << "Account updated!\n";
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+        cout << "Account not found!\n";
+
+    file.close();
+}
+
+// Balance Check
+void checkBalance(int accNo) {
+    Account acc;
+
+    if (searchAccount(accNo, acc)) {
+        cout << "\nCurrent Balance: " << acc.getBalance() << endl;
+    } else {
+        cout << "Account not found!\n";
+    }
+}
+
+// Main Menu
+int main() {
+    int choice, accNo;
+
+    do {
+        cout << "\n====== BANK MANAGEMENT SYSTEM ======";
+        cout << "\n1. Create Account";
+        cout << "\n2. Display All Accounts";
+        cout << "\n3. Deposit";
+        cout << "\n4. Withdraw";
+        cout << "\n5. Check Balance";
+        cout << "\n6. Exit";
+        cout << "\nEnter choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                createAccount();
+                break;
+
+            case 2:
+                displayAll();
+                break;
+
+            case 3:
+                cout << "Enter Account Number: ";
+                cin >> accNo;
+                updateAccount(accNo, 1);
+                break;
+
+            case 4:
+                cout << "Enter Account Number: ";
+                cin >> accNo;
+                updateAccount(accNo, 2);
+                break;
+
+            case 5:
+                cout << "Enter Account Number: ";
+                cin >> accNo;
+                checkBalance(accNo);
+                break;
+
+            case 6:
+                cout << "Exiting... Thank you!\n";
+                break;
+
+            default:
+                cout << "Invalid choice!\n";
+        }
+
+    } while (choice != 6);
+
+    return 0;
+}
